@@ -1,5 +1,5 @@
 {
-  "name": "nexus-saver-api",
+  "name": "mp1-downloader-api",
   "version": "1.0.0",
   "description": "Standalone API Engine for Nexus Saver",
   "main": "api/download.js",
