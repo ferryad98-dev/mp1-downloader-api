@@ -1,7 +1,7 @@
 {
   "name": "mp1-downloader-api",
   "version": "1.0.0",
-  "description": "Standalone API Engine for Nexus Saver",
+  "description": "Standalone API Engine for MP1 Downloader",
   "main": "api/download.js",
   "type": "module",
   "scripts": {
@@ -11,7 +11,7 @@
   "engines": {
     "node": "20.x"
   },
-  "keywords": ["downloader", "api", "nexus"],
-  "author": "Idin Iskandar, S.Kom",
+  "keywords": ["downloader", "api", "MP1 Downloader"],
+  "author": "@PelerMonyetProject",
   "license": "ISC"
 }
