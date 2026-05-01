@@ -1,17 +1,33 @@
 /**
- * MP1 Downloader Backend API
- * Serverless API - All Social Media Downloader
+ * MP1 Save Backend API - Multi Provider with Fallback
  */
 
+const PROVIDERS = [
+  {
+    name: "snap-video3",
+    method: "POST",
+    url: "https://snap-video3.p.rapidapi.com/download",
+    key: "6f304c24d4mshedbc4e7e0e60bd7p1b4729jsn92bec3252946",
+    host: "snap-video3.p.rapidapi.com",
+    bodyType: "form"  // x-www-form-urlencoded
+  },
+  {
+    name: "pinterest",
+    method: "GET",
+    url: "https://pinterest-video-and-image-downloader.p.rapidapi.com/pinterest",
+    key: "6f304c24d4mshedbc4e7e0e60bd7p1b4729jsn92bec3252946",
+    host: "pinterest-video-and-image-downloader.p.rapidapi.com",
+    bodyType: "query"  // url parameter
+  },
+  // Tambah provider lain di sini nanti
+];
+
 export default async function handler(req, res) {
-  // CORS
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
 
-  if (req.method === 'OPTIONS') {
-    return res.status(200).end();
-  }
+  if (req.method === 'OPTIONS') return res.status(200).end();
 
   const { url } = req.query || req.body;
 
@@ -19,43 +35,45 @@ export default async function handler(req, res) {
     return res.status(400).json({ error: 'URL is required' });
   }
 
-  // API Key kamu (ganti kalau mau tambah key cadangan)
-  const API_KEYS = [
-    '6f304c24d4mshedbc4e7e0e60bd7p1b4729jsn92bec3252946'
-  ];
-
-  for (let i = 0; i < API_KEYS.length; i++) {
-    const key = API_KEYS[i];
-
+  for (let provider of PROVIDERS) {
     try {
-      const formData = new URLSearchParams();
-      formData.append('url', url);
-
-      const response = await fetch('https://snap-video3.p.rapidapi.com/download', {
-        method: 'POST',
+      let fetchOptions = {
+        method: provider.method,
         headers: {
-          'x-rapidapi-key': key,
-          'x-rapidapi-host': 'snap-video3.p.rapidapi.com',
-          'Content-Type': 'application/x-www-form-urlencoded'
-        },
-        body: formData.toString()
-      });
+          'x-rapidapi-key': provider.key,
+          'x-rapidapi-host': provider.host,
+        }
+      };
 
-      if (response.status === 429 || response.status === 403) {
-        continue; // coba key berikutnya
+      if (provider.method === 'POST' && provider.bodyType === "form") {
+        const formData = new URLSearchParams();
+        formData.append('url', url);
+        fetchOptions.body = formData.toString();
+        fetchOptions.headers['Content-Type'] = 'application/x-www-form-urlencoded';
+      } else if (provider.method === 'GET') {
+        const queryUrl = `${provider.url}?url=${encodeURIComponent(url)}`;
+        fetchOptions.url = queryUrl;  // Untuk GET
       }
 
-      if (!response.ok) {
-        throw new Error(`HTTP ${response.status}`);
+      const response = await fetch(provider.method === 'GET' ? fetchOptions.url : provider.url, fetchOptions);
+
+      if (response.ok) {
+        const data = await response.json();
+        return res.status(200).json({
+          ...data,
+          provider: provider.name,
+          success: true
+        });
       }
 
-      const data = await response.json();
-      return res.status(200).json(data);
+      console.log(`Provider ${provider.name} gagal, mencoba berikutnya...`);
 
     } catch (error) {
-      if (i === API_KEYS.length - 1) {
-        return res.status(500).json({ error: 'Gagal memproses URL. Coba lagi nanti.' });
-      }
+      console.error(`Error ${provider.name}:`, error.message);
     }
   }
+
+  return res.status(500).json({ 
+    error: "Semua provider sedang bermasalah. Coba lagi nanti." 
+  });
 }
